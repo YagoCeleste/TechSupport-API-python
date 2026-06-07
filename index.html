@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>TechSupport - Painel de Chamados</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        input, select, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; cursor: pointer; border: none; font-weight: bold; transition: 0.3s; }
+        button:hover { background-color: #218838; }
+        .ticket { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .ticket strong { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖥️ Painel de Chamados de T.I.</h1>
+        
+        <!-- Formulário de Envio (O que o usuário vê) -->
+        <h3>Abrir Novo Chamado</h3>
+        <input type="number" id="id" placeholder="ID do Chamado (ex: 1)" required>
+        <input type="text" id="titulo" placeholder="Título (ex: Teclado não funciona)" required>
+        <input type="text" id="descricao" placeholder="Descreva o problema detalhadamente..." required>
+        <select id="prioridade">
+            <option value="Baixa">Prioridade: Baixa</option>
+            <option value="Média">Prioridade: Média</option>
+            <option value="Alta">Prioridade: Alta</option>
+        </select>
+        <button onclick="criarChamado()">Enviar Chamado</button>
+
+        <!-- Lista de Chamados (Onde a API insere os dados) -->
+        <h3>Chamados Abertos (Integração Python)</h3>
+        <div id="lista-chamados">Aguardando conexão com a API...</div>
+    </div>
+
+    <script>
+        // O JavaScript faz o "Fetch" (busca) na sua API feita em Python
+        const apiUrl = "http://127.0.0.1:8000/chamados";
+
+        // Função GET: Puxa os dados do Python e joga na tela
+        async function carregarChamados() {
+            try {
+                let response = await fetch(apiUrl);
+                let chamados = await response.json();
+                let divLista = document.getElementById("lista-chamados");
+                divLista.innerHTML = "";
+                
+                if(chamados.length === 0) {
+                    divLista.innerHTML = "<p>Nenhum chamado aberto no momento. Servidor limpo.</p>";
+                    return;
+                }
+
+                chamados.forEach(c => {
+                    divLista.innerHTML += `
+                        <div class="ticket">
+                            <strong>#${c.id} - ${c.titulo}</strong> (Prioridade: ${c.prioridade})<br>
+                            Status: <b>${c.status}</b> <br>
+                            <small>${c.descricao}</small>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Erro na API", error);
+                document.getElementById("lista-chamados").innerHTML = "<p style='color:red;'>Erro: O servidor Python (FastAPI) está rodando?</p>";
+            }
+        }
+
+        // Função POST: Pega o que foi digitado no HTML e envia pro Python salvar
+        async function criarChamado() {
+            let ticket = {
+                id: parseInt(document.getElementById("id").value),
+                titulo: document.getElementById("titulo").value,
+                descricao: document.getElementById("descricao").value,
+                prioridade: document.getElementById("prioridade").value
+            };
+
+            await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(ticket)
+            });
+
+            carregarChamados(); // Recarrega a lista para mostrar o novo
+        }
+
+        // Roda a função assim que a página abre
+        carregarChamados();
+    </script>
+</body>
+</html>
